@@ -1,0 +1,53 @@
+# Pre-commit 配置：管理 week01 前端 + 后端
+# 安装：pip install pre-commit && pre-commit install
+# 手动运行：pre-commit run --all-files
+
+repos:
+  # ---------- 通用文件检查 ----------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: "week01/frontend/tsconfig.*\\.json"
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-case-conflict
+      - id: debug-statements
+
+  # ---------- Python 后端 (week01/backend) ----------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^week01/backend/
+
+  # ---------- 前端 (week01/frontend)：ESLint ----------
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend eslint
+        entry: bash -c "cd week01/frontend && yarn lint"
+        language: system
+        files: ^week01/frontend/.*\.(ts|tsx|js|jsx|cjs|mjs)$
+      - id: frontend-test
+        name: frontend vitest
+        entry: bash -c "cd week01/frontend && yarn test"
+        language: system
+        files: ^week01/frontend/
+        pass_filenames: false
+
+  # 后端 pytest 需要 PostgreSQL，建议在 CI 中运行；若本地已起 postgres_test 可取消下面注释
+  # - repo: local
+  #   hooks:
+  #     - id: backend-test
+  #       name: backend pytest
+  #       entry: bash -c "cd week01/backend && python -m pytest tests/ -v --tb=short"
+  #       language: system
+  #       files: ^week01/backend/
+  #   pass_filenames: false

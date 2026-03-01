@@ -1,0 +1,121 @@
+# CI：push / PR 时跑 pre-commit 检查 + 后端/前端测试
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ""
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create test database
+        run: |
+          python -c "
+          import psycopg2
+          c = psycopg2.connect('postgresql://postgres@localhost:5432/postgres')
+          c.autocommit = True
+          c.cursor().execute('CREATE DATABASE postgres_test')
+          c.close()
+          "
+        env:
+          PGPASSWORD: ""
+
+      - name: Install backend dependencies
+        run: |
+          cd week01/backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Ruff (lint)
+        run: |
+          cd week01/backend
+          ruff check . --fix
+
+      - name: Pytest
+        run: |
+          cd week01/backend
+          python -m pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: postgresql://postgres@localhost:5432/postgres
+
+  frontend:
+    name: Frontend (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: week01/frontend/yarn.lock
+
+      - name: Install frontend dependencies
+        run: |
+          cd week01/frontend
+          yarn install --frozen-lockfile
+
+      - name: ESLint
+        run: |
+          cd week01/frontend
+          yarn lint
+
+      - name: Vitest
+        run: |
+          cd week01/frontend
+          yarn test
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: week01/frontend/yarn.lock
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install frontend deps (for local hooks)
+        run: cd week01/frontend && yarn install --frozen-lockfile
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files

@@ -1,0 +1,14 @@
+# 后端项目配置（Ruff / 工具）
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app", "alembic"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short"

@@ -1,0 +1,8 @@
+# 仓库根配置：pre-commit 从根目录运行 ruff 时使用（仅会收到 week01/backend 下的文件）
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
